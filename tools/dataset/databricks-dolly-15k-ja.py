@@ -33,7 +33,7 @@ def main() -> None:
             instruction_conversation["input"].append(
                 {
                     "role": "user",
-                    "text": conversation["instruction"] + "\n\n" + conversation["context"]
+                    "text": conversation["instruction"] + "\n" + conversation["context"]
                 }
             )
         else:
