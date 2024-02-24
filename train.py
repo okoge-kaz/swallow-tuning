@@ -109,7 +109,6 @@ def main() -> None:
         eval_dataset=eval_dataset,
         dataset_text_field="text",
         data_collator=collator,
-        peft_config=None,
         max_seq_length=sft_training_args.max_seq_length,
         neftune_noise_alpha=sft_training_args.neftune_noise_alpha if sft_training_args.use_neftune else None,
     )
