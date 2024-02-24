@@ -38,12 +38,6 @@ def main() -> None:
                     }
                 )
             elif conversation["from"] == "gpt":
-                instruction_conversation["output"] = conversation["value"]
-                instruction_data.append(instruction_conversation)
-
-                instruction_conversation = {
-                    "input": instruction_conversation["input"].copy(),
-                }
                 instruction_conversation["input"].append(
                     {
                         "role": "assistant",
@@ -52,6 +46,9 @@ def main() -> None:
                 )
             else:
                 print(f"invalid conversation={conversation}")
+
+        instruction_conversation["output"] = conversations["chosen"]
+        instruction_data.append(instruction_conversation)
 
     print(f"\n\nlen(instruction_data)={len(instruction_data)}")
 
