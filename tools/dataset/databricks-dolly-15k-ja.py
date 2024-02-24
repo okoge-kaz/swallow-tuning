@@ -44,7 +44,11 @@ def main() -> None:
                 }
             )
         instruction_conversation["output"] = conversation["response"]
-        instruction_data.append(instruction_conversation)
+        if len(instruction_conversation["output"]) < 1:
+            # delete black output case
+            print("DEBUG: " + instruction_conversation["output"])
+        else:
+            instruction_data.append(instruction_conversation)
 
     print(f"\n\nlen(instruction_data)={len(instruction_data)}")
 
