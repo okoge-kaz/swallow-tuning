@@ -123,6 +123,9 @@ def is_invalid_input(conversation: dict) -> bool:
         elif len(conversation["input"]) == 1:
             if conversation["input"][0]["text"] == "":
                 return True
+        elif any(len(role_text["text"]) == 0 for role_text in conversation["input"]):
+            return True
+
         return False
     else:
         return True
