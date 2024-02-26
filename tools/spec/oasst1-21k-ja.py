@@ -40,6 +40,9 @@ def main() -> None:
         if is_invalid_input(conversation=conversation):
             print(f"DEBUG: {conversation}")
             continue
+        if len(conversation["output"]) <= 0:
+            print("output is 0 len")
+            continue
         if conversation in instruction_data:
             duplication_count += 1
             continue
