@@ -28,6 +28,9 @@ def main() -> None:
             "input": [],
         }
 
+        if any(len(conversation["value"]) == 0 for conversation in conversations["conversations"]):
+            continue
+
         for conversation in conversations["conversations"]:
 
             if conversation["from"] == "human":
