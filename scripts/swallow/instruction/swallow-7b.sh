@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -l rt_AF=2
-#$ -l h_rt=2:00:00:00
+#$ -l h_rt=0:10:00:00
 #$ -j y
-#$ -o outputs/swallow-7b/instruction/
+#$ -o outputs/swallow-7b/neftune/
 #$ -cwd
 
 # module load
@@ -44,28 +44,68 @@ while read -r line; do
 done <"$SGE_JOB_HOSTLIST" >"$HOSTFILE_NAME"
 
 # training config
-MICRO_BATCH_SIZE=1
+MICRO_BATCH_SIZE=2
 GLOBAL_BATCH_SIZE=64
-GRADIENT_ACCUmULATION_STEPS=$(($GLOBAL_BATCH_SIZE / $MICRO_BATCH_SIZE / $NUM_GPUS))
+GRADIENT_ACCUMULATION_STEPS=$(($GLOBAL_BATCH_SIZE / $MICRO_BATCH_SIZE / $NUM_GPUS))
 
-if [[ $GRADIENT_ACCUmULATION_STEPS -lt 1 ]]; then
+if [[ $GRADIENT_ACCUMULATION_STEPS -lt 1 ]]; then
   echo "Global batch size is too small for the number of GPUs"
   exit 1
 fi
 
-LR=1e-4
-MIN_LR=3.3e-6
-LR_WARMUP_STEPS=1000
+LR=2e-5
+MIN_LR=2e-6
+
+beta_1=0.9
+beta_2=0.95
+
 WEIGHT_DECAY=0.1
 GRAD_CLIP=1
 
 EPOCH=2
 SEQ_LENGTH=4096
 
-# model config
-MODEL_CHECKPOINT_PATH=""
-MODEL_CHECKPOINT_SAVE_PATH=""
-TOKENIZER_PATH=""
+# checkpoint & tokenizer
+TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
+CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
+CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-7b-VE-instruct-v1-NEFTune/baseline-lr_${LR}-minlr_${MIN_LR}"
+
+mkdir -p ${CHECKPOINT_SAVE_DIR}
+
+# dataset
+DATASET_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/baseline
+
+TRAIN_DATA_PATH=${DATASET_DIR}/train.jsonl
+VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
+
+# deepspeed config
+config_json="./deepspeed_config.json"
+
+zero_stage=2
+train_micro_batch_size_per_gpu=$MICRO_BATCH_SIZE
+optimizer="Adam"
+optimizer_params="{\"lr\": $LR, \"betas\": [$beta_1, $beta_2], \"eps\": 1e-6, \"weight_decay\": $WEIGHT_DECAY}"
+gradient_clipping=$GRAD_CLIP
+bf16="{\"enabled\": true}"
+
+echo "{
+  \"zero_optimization\": {
+    \"stage\": $zero_stage
+  },
+  \"train_micro_batch_size_per_gpu\": $train_micro_batch_size_per_gpu,
+  \"optimizer\": {
+    \"type\": \"$optimizer\",
+    \"params\": $optimizer_params
+  },
+  \"gradient_clipping\": $gradient_clipping,
+  \"bf16\": $bf16
+}" > $config_json
+
+# job name
+JOB_NAME="Swallow-7b-VE-NEFTune-baseline-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
+
+export WANDB_ENTITY="prj-jalm"
+export WANDB_PROJECT="Llama-2-7b-instruct"
 
 # run
 mpirun -np $NUM_GPUS \
@@ -77,22 +117,35 @@ mpirun -np $NUM_GPUS \
   -bind-to none -map-by slot \
   -x PATH \
   python train.py \
-    --model_name_or_path $MODEL_CHECKPOINT_PATH \
-    --tokenizer_name_or_path $TOKENIZER_PATH \
+    --do_train \
+    --do_eval \
+    --model_name_or_path $CHECKPOINT_DIR \
+    --tokenizer_name_or_path $TOKENIZER_DIR \
     --num_train_epochs $EPOCH \
     --per_device_train_batch_size $MICRO_BATCH_SIZE \
-    --gradient_accumulation_steps $GRADIENT_ACCUmULATION_STEPS \
+    --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
     --learning_rate $LR \
     --warmup_ratio 0.1 \
-    --lr_scheduler cosine \
+    --lr_scheduler_type cosine \
+    --adam_beta1 $beta_1 \
+    --adam_beta2 $beta_2 \
+    --adam_epsilon 1e-6 \
+    --max_grad_norm $GRAD_CLIP \
+    --weight_decay $WEIGHT_DECAY \
     --bf16 \
     --max_seq_length $SEQ_LENGTH \
     --gradient_checkpointing \
-    --save_steps 500 \
     --save_total_limit 2 \
     --logging_steps 1 \
     --report_to wandb \
+    --run_name $JOB_NAME \
     --log_on_each_node False \
     --deepspeed ${config_json} \
-    --output_dir $MODEL_CHECKPOINT_SAVE_PATH \
-    --data_files
+    --save_strategy epoch \
+    --save_safetensors True \
+    --output_dir $CHECKPOINT_SAVE_DIR \
+    --train_data_path $TRAIN_DATA_PATH \
+    --val_data_path $VALID_DATA_PATH \
+    --deepspeed $config_json \
+    --use_flash_attention_2 True \
+    --neftune_noise_alpha 5

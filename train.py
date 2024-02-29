@@ -3,14 +3,15 @@ from typing import Optional, Any
 
 import os
 import torch
-from datasets import disable_caching, load_dataset, concatenate_datasets
+import torch.distributed as torch_distributed
+from datasets import disable_caching, load_dataset
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     TrainingArguments,
     HfArgumentParser,
 )
-from trl import DataCollatorForCompletionOnlyLM, SFTTrainer
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 
 disable_caching()
 
@@ -19,8 +20,9 @@ disable_caching()
 class SFTTrainingArguments:
     model_name_or_path: str
 
-    data_files: list[str]
-    eval_data_files: Optional[list[str]] = None
+    train_data_path: str
+    val_data_path: str
+
     tokenizer_name_or_path: Optional[str] = None
 
     use_fast: bool = True
@@ -29,26 +31,15 @@ class SFTTrainingArguments:
 
     use_flash_attention_2: bool = False
 
-    use_neftune: bool = False
-    neftune_noise_alpha: Optional[float] = None
-
     def from_pretrained_kwargs(self, training_args):
         if training_args.bf16:
             kwargs: dict[str, Any] = {"torch_dtype": torch.bfloat16}
         else:
             kwargs = {"torch_dtype": torch.float16}
-        kwargs["use_flash_attention_2"] = self.use_flash_attention_2
+
+        if self.use_flash_attention_2:
+            kwargs["attn_implementation"] = "flash_attention_2"
         return kwargs
-
-
-def load_datasets(data_files: list[str]):
-    datasets = []
-    for data_file in data_files:
-        dataset = load_dataset("json", data_files=data_file)
-        dataset = dataset["train"]  # type: ignore
-        dataset = dataset.select_columns("text")  # type: ignore
-        datasets.append(dataset)
-    return concatenate_datasets(datasets)
 
 
 def set_mpi_env() -> None:
@@ -60,6 +51,11 @@ def set_mpi_env() -> None:
     os.environ["RANK"] = str(global_rank)
     os.environ["LOCAL_RANK"] = str(local_rank)
     os.environ["WORLD_SIZE"] = str(world_size)
+
+
+def print_rank_0(message) -> None:
+    if torch_distributed.get_rank() == 0:
+        print(message)
 
 
 def main() -> None:
@@ -80,37 +76,64 @@ def main() -> None:
         additional_special_tokens=sft_training_args.additional_special_tokens,
         trust_remote_code=True,
     )
+    tokenizer.pad_token = tokenizer.unk_token
+    tokenizer.pad_token_id = tokenizer.unk_token_id
 
-    train_dataset = load_datasets(sft_training_args.data_files)
-    if sft_training_args.eval_data_files:
-        eval_dataset = load_datasets(sft_training_args.eval_data_files)
-        training_args.do_eval = True
-    else:
-        eval_dataset = None
+    train_dataset = load_dataset(
+        "json", data_files=sft_training_args.train_data_path, split="train"
+    )
+    eval_dataset = load_dataset(
+        "json", data_files=sft_training_args.val_data_path, split="train"
+    )
+    print_rank_0(message="dataset load done")
 
-    instruction_ids = tokenizer.encode("\n\n### 指示:\n", add_special_tokens=False)[1:]
-    response_ids = tokenizer.encode("\n\n### 応答:\n", add_special_tokens=False)[1:]
+    # dataset
+    SYSTEM_PROMPT = [
+        {"role": "system", "text": "あなたは誠実で優秀な日本人のアシスタントです。"}
+    ]
+
+    def formatting_prompts_func(example):
+        output_texts = []
+        for i in range(len(example['input'])):
+            prompt: str = tokenizer.apply_chat_template(
+                conversation=SYSTEM_PROMPT + example["input"][i],  # type: ignore
+                tokenize=False
+            )
+            # <s> が余計につくので prompt[3:]
+            # output</s> : eos_tokenを最後につける。
+            text: str = prompt[3:] + example["output"][i] + tokenizer.eos_token
+
+            output_texts.append(text)
+        return output_texts
+
+    response_template = "[/INST]"
+    response_template_ids = tokenizer.encode(
+        response_template, add_special_tokens=False
+    )[1:]
     collator = DataCollatorForCompletionOnlyLM(
-        instruction_template=instruction_ids, response_template=response_ids, tokenizer=tokenizer
+        response_template=response_template_ids,
+        tokenizer=tokenizer
     )
 
+    print_rank_0(message="model load start")
     kwargs = sft_training_args.from_pretrained_kwargs(training_args)
     model = AutoModelForCausalLM.from_pretrained(
         sft_training_args.model_name_or_path,
         trust_remote_code=True,
+        use_cache=False,
         **kwargs,
     )
+    print_rank_0(message="model load end")
 
     trainer = SFTTrainer(
         model,
-        args=training_args,
         tokenizer=tokenizer,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        dataset_text_field="text",
+        train_dataset=train_dataset,  # type: ignore
+        eval_dataset=eval_dataset,  # type: ignore
+        formatting_func=formatting_prompts_func,
         data_collator=collator,
         max_seq_length=sft_training_args.max_seq_length,
-        neftune_noise_alpha=sft_training_args.neftune_noise_alpha if sft_training_args.use_neftune else None,
+        args=training_args,
     )
 
     trainer.train()  # type: ignore
