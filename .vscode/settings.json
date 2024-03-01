@@ -1,7 +1,8 @@
 {
   "cSpell.words": [
     "neftune",
-    "OMPI"
+    "OMPI",
+    "safetensors"
   ],
   "files.watcherExclude": {
     "**/.git/objects/**": true,
