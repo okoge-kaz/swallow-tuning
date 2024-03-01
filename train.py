@@ -76,6 +76,7 @@ def main() -> None:
         additional_special_tokens=sft_training_args.additional_special_tokens,
         trust_remote_code=True,
     )
+    # pad_token追加はエラー
     tokenizer.pad_token = tokenizer.unk_token
     tokenizer.pad_token_id = tokenizer.unk_token_id
 

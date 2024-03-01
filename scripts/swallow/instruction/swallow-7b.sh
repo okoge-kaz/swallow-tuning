@@ -98,6 +98,7 @@ echo "{
     \"params\": $optimizer_params
   },
   \"gradient_clipping\": $gradient_clipping,
+  \"gradient_accumulation_steps\": $GRADIENT_ACCUMULATION_STEPS,
   \"bf16\": $bf16
 }" > $config_json
 
@@ -143,6 +144,7 @@ mpirun -np $NUM_GPUS \
     --deepspeed ${config_json} \
     --save_strategy epoch \
     --save_safetensors True \
+    --save_on_each_node False \
     --output_dir $CHECKPOINT_SAVE_DIR \
     --train_data_path $TRAIN_DATA_PATH \
     --val_data_path $VALID_DATA_PATH \
