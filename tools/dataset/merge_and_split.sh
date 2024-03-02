@@ -1,13 +1,16 @@
 #!/bin/bash
 
 INPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/formatted
-OUTPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/imitation_2_oasst2_top1
+OUTPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/dolly-oasst1-oasst2-top1-imitation
 
 mkdir -p $OUTPUT_DIR
 
 FILES_TO_MERGE=(
-  "oasst1-21k-ja-mixtral-imitation_2.jsonl"
+  "databricks-dolly-15k-en.jsonl"
+  "databricks-dolly-15k-ja.jsonl"
   "oasst2-top1-en.jsonl"
+  "oasst1-21k-ja.jsonl"
+  "oasst1-21k-ja-mixtral-imitation_2.jsonl"
 )
 
 # merge files
