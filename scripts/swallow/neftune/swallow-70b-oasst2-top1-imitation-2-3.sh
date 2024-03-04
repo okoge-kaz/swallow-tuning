@@ -1,8 +1,8 @@
 #!/bin/bash
-#$ -l rt_AF=2
-#$ -l h_rt=0:6:00:00
+#$ -l rt_AF=16
+#$ -l h_rt=0:08:00:00
 #$ -j y
-#$ -o outputs/swallow-7b/neftune/
+#$ -o outputs/swallow-70b/neftune/
 #$ -cwd
 
 # module load
@@ -44,7 +44,7 @@ while read -r line; do
 done <"$SGE_JOB_HOSTLIST" >"$HOSTFILE_NAME"
 
 # training config
-MICRO_BATCH_SIZE=2
+MICRO_BATCH_SIZE=1
 GLOBAL_BATCH_SIZE=256
 GRADIENT_ACCUMULATION_STEPS=$(($GLOBAL_BATCH_SIZE / $MICRO_BATCH_SIZE / $NUM_GPUS))
 
@@ -53,8 +53,8 @@ if [[ $GRADIENT_ACCUMULATION_STEPS -lt 1 ]]; then
   exit 1
 fi
 
-LR=2e-5
-MIN_LR=2e-6
+LR=1e-5
+MIN_LR=1e-6
 
 beta_1=0.9
 beta_2=0.95
@@ -66,14 +66,14 @@ EPOCH=2
 SEQ_LENGTH=4096
 
 # checkpoint & tokenizer
-TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
-CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
-CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-7b-VE-instruct-v1-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
+TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-70b-hf
+CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-70b-hf
+CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-70b-VE-instruct-v1-NEFTune/oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
 
 mkdir -p ${CHECKPOINT_SAVE_DIR}
 
 # dataset
-DATASET_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/dolly-oasst2-top1-imitation-2-3
+DATASET_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/oasst2-top1-imitation-2-3
 
 TRAIN_DATA_PATH=${DATASET_DIR}/train.jsonl
 VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
@@ -81,7 +81,7 @@ VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
 # deepspeed config
 config_json="./deepspeed_config.json"
 
-zero_stage=2
+zero_stage=3
 train_micro_batch_size_per_gpu=$MICRO_BATCH_SIZE
 optimizer="Adam"
 optimizer_params="{\"lr\": $LR, \"betas\": [$beta_1, $beta_2], \"eps\": 1e-6, \"weight_decay\": $WEIGHT_DECAY}"
@@ -103,10 +103,10 @@ echo "{
 }" > $config_json
 
 # job name
-JOB_NAME="Swallow-7b-VE-NEFTune-dolly-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
+JOB_NAME="Swallow-70b-VE-NEFTune-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
 
 export WANDB_ENTITY="prj-jalm"
-export WANDB_PROJECT="Llama-2-7b-instruct"
+export WANDB_PROJECT="Llama-2-70b-instruct"
 
 # run
 mpirun -np $NUM_GPUS \

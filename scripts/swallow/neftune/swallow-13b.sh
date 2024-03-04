@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -l rt_AF=2
-#$ -l h_rt=0:6:00:00
+#$ -l h_rt=0:8:00:00
 #$ -j y
-#$ -o outputs/swallow-7b/neftune/
+#$ -o outputs/swallow-13b/neftune/
 #$ -cwd
 
 # module load
@@ -66,9 +66,9 @@ EPOCH=2
 SEQ_LENGTH=4096
 
 # checkpoint & tokenizer
-TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
-CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
-CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-7b-VE-instruct-v1-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
+TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-13b-hf
+CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-13b-hf
+CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-13b-VE-instruct-v1-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
 
 mkdir -p ${CHECKPOINT_SAVE_DIR}
 
@@ -81,7 +81,7 @@ VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
 # deepspeed config
 config_json="./deepspeed_config.json"
 
-zero_stage=2
+zero_stage=3
 train_micro_batch_size_per_gpu=$MICRO_BATCH_SIZE
 optimizer="Adam"
 optimizer_params="{\"lr\": $LR, \"betas\": [$beta_1, $beta_2], \"eps\": 1e-6, \"weight_decay\": $WEIGHT_DECAY}"
@@ -103,10 +103,10 @@ echo "{
 }" > $config_json
 
 # job name
-JOB_NAME="Swallow-7b-VE-NEFTune-dolly-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
+JOB_NAME="Swallow-13b-VE-NEFTune-dolly-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
 
 export WANDB_ENTITY="prj-jalm"
-export WANDB_PROJECT="Llama-2-7b-instruct"
+export WANDB_PROJECT="Llama-2-13b-instruct"
 
 # run
 mpirun -np $NUM_GPUS \

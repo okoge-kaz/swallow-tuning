@@ -68,12 +68,12 @@ SEQ_LENGTH=4096
 # checkpoint & tokenizer
 TOKENIZER_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
 CHECKPOINT_DIR=/bb/llm/gaf51275/llama/huggingface-checkpoint/Swallow-7b-hf
-CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-7b-VE-instruct-v1-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
+CHECKPOINT_SAVE_DIR="/bb/llm/gaf51275/llama/checkpoints/Swallow-7b-VE-instruct-v1-NEFTune/oasst2-top1-imitation-2-3-lr_${LR}-minlr_${MIN_LR}-GB_${GLOBAL_BATCH_SIZE}"
 
 mkdir -p ${CHECKPOINT_SAVE_DIR}
 
 # dataset
-DATASET_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/dolly-oasst2-top1-imitation-2-3
+DATASET_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/oasst2-top1-imitation-2-3
 
 TRAIN_DATA_PATH=${DATASET_DIR}/train.jsonl
 VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
@@ -103,7 +103,7 @@ echo "{
 }" > $config_json
 
 # job name
-JOB_NAME="Swallow-7b-VE-NEFTune-dolly-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
+JOB_NAME="Swallow-7b-VE-NEFTune-oasst2-top1-imitation-2-3-BS=${GLOBAL_BATCH_SIZE}-LR=${LR}-MINLR=${MIN_LR}"
 
 export WANDB_ENTITY="prj-jalm"
 export WANDB_PROJECT="Llama-2-7b-instruct"
