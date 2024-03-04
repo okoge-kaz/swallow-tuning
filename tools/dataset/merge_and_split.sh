@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/formatted
-OUTPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/oasst2-top1-imitation-2-3
+OUTPUT_DIR=/bb/llm/gaf51275/llama/finetuning/datasets/training/hh-rlhf-dolly-ossat-imitation
 
 mkdir -p $OUTPUT_DIR
 
@@ -9,6 +9,8 @@ FILES_TO_MERGE=(
   "databricks-dolly-15k-en.jsonl"
   "databricks-dolly-15k-ja.jsonl"
   "oasst2-top1-en.jsonl"
+  "oasst1-21k-en.jsonl"
+  "hh-rlhf-12k-ja.jsonl"
   "oasst1-21k-ja-mixtral-imitation_2.jsonl"
   "convert_oasst1-21k-ja-mixtral-imitation_3.jsonl"
 )
