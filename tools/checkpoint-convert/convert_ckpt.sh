@@ -22,10 +22,10 @@ export MASTER_PORT=$((10000 + ($JOB_ID % 50000)))
 
 echo "MASTER_ADDR=${MASTER_ADDR}"
 
-ITERATION=800
+ITERATION=866
 
 # ZeRO -> PyToech
-CHECK_POINT_DIR=/bb/llm/gaf51275/llama/checkpoints/Swallow-13b-VE-instruct-v1-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_2e-5-minlr_2e-6-GB_256/checkpoint-${ITERATION}
+CHECK_POINT_DIR=/bb/llm/gaf51275/llama/checkpoints/Swallow-13b-VE-instruct-v1-NEFTune/baseline-imitation_2-lr_2e-5-minlr_2e-6-GB_256/checkpoint-${ITERATION}
 
 python tools/checkpoint-convert/zero_to_fp32.py \
   --checkpoint-dir $CHECK_POINT_DIR \
@@ -36,7 +36,7 @@ python tools/checkpoint-convert/zero_to_fp32.py \
 FORMATTED_ITERATION=$(printf "iter_%07d" $ITERATION)
 
 CHECK_POINT_PATH=${CHECK_POINT_DIR}/model.pt
-OUTPUT_PATH=/bb/llm/gaf51275/llama/converted-hf-checkpoint/Swallow-13b-VE-NEFTune/dolly-oasst2-top1-imitation-2-3-lr_2e-5-minlr_2e-6-GB_256/${FORMATTED_ITERATION}
+OUTPUT_PATH=/bb/llm/gaf51275/llama/converted-hf-checkpoint/Swallow-13b-VE-NEFTune/baseline-imitation_2-lr_2e-5-minlr_2e-6-GB_256/${FORMATTED_ITERATION}
 
 echo "convert ${CHECK_POINT_PATH} to ${OUTPUT_PATH}"
 
