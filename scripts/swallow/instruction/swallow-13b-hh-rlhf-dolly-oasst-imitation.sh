@@ -44,7 +44,7 @@ while read -r line; do
 done <"$SGE_JOB_HOSTLIST" >"$HOSTFILE_NAME"
 
 # training config
-MICRO_BATCH_SIZE=1
+MICRO_BATCH_SIZE=2
 GLOBAL_BATCH_SIZE=128
 GRADIENT_ACCUMULATION_STEPS=$(($GLOBAL_BATCH_SIZE / $MICRO_BATCH_SIZE / $NUM_GPUS))
 
@@ -81,7 +81,7 @@ VALID_DATA_PATH=${DATASET_DIR}/val.jsonl
 # deepspeed config
 config_json="./deepspeed_config.json"
 
-zero_stage=2
+zero_stage=3
 train_micro_batch_size_per_gpu=$MICRO_BATCH_SIZE
 optimizer="Adam"
 optimizer_params="{\"lr\": $LR, \"betas\": [$beta_1, $beta_2], \"eps\": 1e-6, \"weight_decay\": $WEIGHT_DECAY}"
