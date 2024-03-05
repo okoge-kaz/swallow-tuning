@@ -16,3 +16,8 @@ wandb
 # multi node
 deepspeed
 mpi4py
+
+# flash attn
+ninja
+packaging
+wheel
