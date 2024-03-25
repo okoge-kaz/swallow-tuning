@@ -20,7 +20,10 @@ def main() -> None:
     jsonl_data: list = []
     for file in args.input:
         with open(file, "r") as f:
-            jsonl_data.extend(json.load(f))
+            try:
+                jsonl_data.extend(json.load(f))
+            except Exception as e:
+                print(f"file name={file}, error={e}")
 
     instruction_data: list[dict[str, Any]] = []
     for conversation in tqdm(jsonl_data):
